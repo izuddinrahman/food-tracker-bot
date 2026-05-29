@@ -57,7 +57,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Check if onboarding needed
     if not db_user.get("onboarding_complete"):
         await update.message.reply_text(
-            f"👋 Salam *{user.first_name}*! Selamat datang ke Food Tracker Bot \\- pembantu nutrisi AI anda\\.\n\n"
+            f"👋 Salam *{user.first_name}*\\! Selamat datang ke Food Tracker Bot \\- pembantu nutrisi AI anda\\.\\n\\n"
             "Sebelum mula, saya perlukan beberapa info untuk kira keperluan kalori anda secara automatik\\.\n\n"
             "📋 *Sila jawab soalan berikut:*\n\n"
             "1\\. Berapa *berat* anda? \\(contoh: 85\\)\n"
