@@ -567,16 +567,16 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 cal = result["cal_target"]
                 protein = result["protein_target"]
                 await update.message.reply_text(
-                    f"✅ *Profil Disimpan\\!*\n\n"
-                    f"⚖️ Berat: *{weight}kg*\n"
-                    f"📏 Tinggi: *{height}cm*\n"
-                    f"🎂 Umur: *{age} tahun*\n"
-                    f"⚧️ Jantina: *{gender.upper()}*\n\n"
-                    f"📊 *Keputusan:*\n"
-                    f"🔥 TDEE \\(kalori dibakar sehari\\): *{tdee} kcal*\n"
-                    f"🎯 Target Kalori \\(untuk turun berat\\): *{cal} kcal/hari*\n"
-                    f"💪 Target Protein: *{protein}g/hari*\n\n"
-                    f"📸 Sekarang hantar gambar makanan pertama anda\\! 🍛\n"
+                    f"✅ *Profil Disimpan\\!*\\n\\n"
+                    f"⚖️ Berat: *{int(weight)}kg*\\n"
+                    f"📏 Tinggi: *{int(height)}cm*\\n"
+                    f"🎂 Umur: *{age} tahun*\\n"
+                    f"⚧️ Jantina: *{gender.upper()}*\\n\\n"
+                    f"📊 *Keputusan:*\\n"
+                    f"🔥 TDEE \\(kalori dibakar sehari\\): *{tdee} kcal*\\n"
+                    f"🎯 Target Kalori \\(untuk turun berat\\): *{cal} kcal/hari*\\n"
+                    f"💪 Target Protein: *{int(protein)}g/hari*\\n\\n"
+                    f"📸 Sekarang hantar gambar makanan pertama anda\\! 🍛\\n"
                     f"Taip /help untuk senarai commands\\.",
                     parse_mode="MarkdownV2"
                 )
@@ -584,6 +584,15 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             except (ValueError, IndexError):
                 await update.message.reply_text(
                     "❌ Format salah\\. Sila guna format: `berat tinggi umur jantina`\n"
+                    "Contoh: `85 170 35 L`",
+                    parse_mode="MarkdownV2"
+                )
+                return
+            except Exception as e:
+                logger.error(f"Error in onboarding handler: {e}", exc_info=True)
+                await update.message.reply_text(
+                    "❌ Ralat teknikal. Cuba hantar semula info anda:\n"
+                    "`berat tinggi umur jantina`\n"
                     "Contoh: `85 170 35 L`",
                     parse_mode="MarkdownV2"
                 )
