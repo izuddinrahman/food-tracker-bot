@@ -21,6 +21,9 @@ from database import (
     add_tag_to_user, remove_tag_from_user,
     save_water, get_today_water,
     save_broadcast_log,
+    update_user_profile, calculate_tdee,
+    save_weight, get_weight_history,
+    reset_onboarding,
 )
 from reports import build_daily_summary, build_weekly_summary
 
@@ -49,10 +52,40 @@ def is_admin(telegram_id: int) -> bool:
 
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
-    get_or_create_user(user.id, user.first_name)
+    db_user = get_or_create_user(user.id, user.first_name)
+
+    # Check if onboarding needed
+    if not db_user.get("onboarding_complete"):
+        await update.message.reply_text(
+            f"👋 Salam *{user.first_name}*! Selamat datang ke Food Tracker Bot \\- pembantu nutrisi AI anda\\.\n\n"
+            "Sebelum mula, saya perlukan beberapa info untuk kira keperluan kalori anda secara automatik\\.\n\n"
+            "📋 *Sila jawab soalan berikut:*\n\n"
+            "1\\. Berapa *berat* anda? \\(contoh: 85\\)\n"
+            "2\\. Berapa *tinggi* anda? \\(contoh: 170\\)\n"
+            "3\\. Berapa *umur* anda?\n"
+            "4\\. *Jantina* anda? \\(L/P\\)\n\n"
+            "Hantar dalam format:\n"
+            "`berat tinggi umur jantina`\n\n"
+            "Contoh: `85 170 35 L`\n\n"
+            "Saya akan kira TDEE dan target kalori untuk *weight loss* anda\\. 🔥",
+            parse_mode="MarkdownV2"
+        )
+        return
+
+    cal_target = db_user.get("daily_cal_target", 2000)
+    protein_target = db_user.get("daily_protein_target", 50)
+    weight = db_user.get("weight_kg", "-")
+    height = db_user.get("height_cm", "-")
+    streak = db_user.get("streak_count", 0)
+
     msg = (
         f"👋 Salam *{user.first_name}*!\n\n"
         "Saya akan bantu track pemakanan & air harian anda.\n\n"
+        f"📊 *Profil Anda:*\n"
+        f"⚖️ Berat: {weight}kg | 📏 Tinggi: {height}cm\n"
+        f"🔥 Target Kalori: *{cal_target} kcal/hari*\n"
+        f"💪 Target Protein: *{protein_target}g/hari*\n"
+        f"🔥 Streak: *{streak} hari*\n\n"
         "📸 *Cara log meal:*\n"
         "Snap gambar makanan dan hantar terus. Boleh tambah nota dalam caption!\n\n"
         "📋 *Commands:*\n"
@@ -60,9 +93,9 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/week — Ringkasan 7 hari\n"
         "/air [jumlah] — Log air minum\n"
         "/log [nama] [kalori] — Log manual\n"
+        "/berat [kg] — Log berat\n"
         "/undo — Padam log terakhir\n"
         "/target — Set target kalori\n"
-        "/mytags — Lihat tag anda\n"
         "/help — Bantuan lengkap\n\n"
         "Jom mula! Hantar gambar makanan pertama anda 🍛"
     )
@@ -88,6 +121,8 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "💧 */air* — Tengok air hari ini\n"
         "   */air 250* — Log 250ml air\n\n"
         "✏️ */log Nasi goreng 450* — Log manual\n\n"
+        "⚖️ */berat* — Lihat progress berat\n"
+        "   */berat 84.5* — Log berat baru\n\n"
         "↩️ */undo* — Padam meal terakhir\n\n"
         "📊 */today* — Ringkasan hari ini\n"
         "📈 */week* — Trend 7 hari\n\n"
@@ -265,6 +300,97 @@ async def cmd_mytags(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"🏷️ *Tag anda:*\n\n{tags_display}", parse_mode="Markdown")
 
 
+async def cmd_setup(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Revise profile — reset onboarding and re-calculate TDEE."""
+    telegram_id = update.effective_user.id
+    user = get_user(telegram_id)
+    if not user:
+        await update.message.reply_text("Sila /start dahulu.")
+        return
+
+    # Show current profile
+    w = user.get("weight_kg", "-")
+    h = user.get("height_cm", "-")
+    a = user.get("age", "-")
+    g = user.get("gender", "-")
+    cal = user.get("daily_cal_target", "-")
+    prot = user.get("daily_protein_target", "-")
+
+    msg = (
+        f"📋 *Profil Semasa:*\n"
+        f"⚖️ Berat: {w}kg | 📏 Tinggi: {h}cm\n"
+        f"🎂 Umur: {a} | ⚧️ Jantina: {g}\n"
+        f"🎯 Target: {cal} kcal | 💪 Protein: {prot}g\n\n"
+        f"Untuk *kemaskini*, hantar 4 info baru:\n"
+        f"`berat tinggi umur jantina`\n\n"
+        f"Contoh: `80 170 35 L`\n\n"
+        f"Saya akan kira semula TDEE & target anda 🔄"
+    )
+    await update.message.reply_text(msg, parse_mode="Markdown")
+
+    # Mark onboarding as incomplete so handler catches it
+    reset_onboarding(telegram_id)
+
+
+async def cmd_berat(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Log berat badan dan lihat progress."""
+    telegram_id = update.effective_user.id
+    user = get_user(telegram_id)
+    if not user:
+        await update.message.reply_text("Sila /start dahulu.")
+        return
+
+    args = context.args
+    if not args:
+        # Show current weight + recent history
+        current = user.get("weight_kg")
+        history = get_weight_history(telegram_id, days=14)
+        tdee = calculate_tdee(
+            current or 70, user.get("height_cm") or 170,
+            user.get("age") or 30, user.get("gender") or "L"
+        )
+        cal_target = user.get("daily_cal_target", 2000)
+        lines = ""
+        for w in history[-10:]:
+            d = w["logged_at"][:10]
+            kg = w["weight_kg"]
+            lines += f"  📅 {d}: {kg}kg\n"
+        if not lines:
+            lines = "  Tiada data lagi.\n"
+        await update.message.reply_text(
+            f"⚖️ *Berat Badan*\n\n"
+            f"📊 Terkini: *{current}kg*\n"
+            f"🔥 TDEE: *{tdee} kcal/hari*\n"
+            f"🎯 Target: *{cal_target} kcal/hari*\n\n"
+            f"📜 *Sejarah 14 hari:*\n{lines}\n"
+            f"Log berat: `/berat 84.5`",
+            parse_mode="Markdown"
+        )
+        return
+
+    try:
+        weight = float(args[0])
+        if weight < 30 or weight > 300:
+            await update.message.reply_text("❌ Berat tidak valid (30-300kg).")
+            return
+        save_weight(telegram_id, weight)
+        if user.get("weight_kg"):
+            old = float(user.get("weight_kg"))
+            diff = weight - old
+            emoji = "📉" if diff < 0 else ("📈" if diff > 0 else "➡️")
+            trend = f"\n{emoji} Perubahan: *{diff:+.1f}kg* sejak bacaan lepas"
+        else:
+            trend = ""
+        await update.message.reply_text(
+            f"✅ *Berat dilog!*\n\n"
+            f"⚖️ {weight}kg{trend}\n\n"
+            f"Lagi ke target? Kekalkan! 💪",
+            parse_mode="Markdown"
+        )
+    except ValueError:
+        await update.message.reply_text("❌ Format: `/berat 84.5`")
+
+
 async def cmd_tag(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update.effective_user.id):
         await update.message.reply_text("❌ Admin sahaja boleh guna command ini.")
@@ -424,9 +550,56 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     telegram_id = update.effective_user.id
-    text = update.message.text.strip().upper()
+    text = update.message.text.strip()
 
-    if text == "YA" and "pending_undo" in context.user_data:
+    # Check for onboarding input: "weight height age gender"
+    user = get_user(telegram_id)
+    if user and not user.get("onboarding_complete"):
+        parts = text.split()
+        if len(parts) >= 4:
+            try:
+                weight = float(parts[0])
+                height = float(parts[1])
+                age = int(parts[2])
+                gender = parts[3]
+                result = update_user_profile(telegram_id, weight, height, age, gender)
+                tdee = result["tdee"]
+                cal = result["cal_target"]
+                protein = result["protein_target"]
+                await update.message.reply_text(
+                    f"✅ *Profil Disimpan\\!*\n\n"
+                    f"⚖️ Berat: *{weight}kg*\n"
+                    f"📏 Tinggi: *{height}cm*\n"
+                    f"🎂 Umur: *{age} tahun*\n"
+                    f"⚧️ Jantina: *{gender.upper()}*\n\n"
+                    f"📊 *Keputusan:*\n"
+                    f"🔥 TDEE \\(kalori dibakar sehari\\): *{tdee} kcal*\n"
+                    f"🎯 Target Kalori \\(untuk turun berat\\): *{cal} kcal/hari*\n"
+                    f"💪 Target Protein: *{protein}g/hari*\n\n"
+                    f"📸 Sekarang hantar gambar makanan pertama anda\\! 🍛\n"
+                    f"Taip /help untuk senarai commands\\.",
+                    parse_mode="MarkdownV2"
+                )
+                return
+            except (ValueError, IndexError):
+                await update.message.reply_text(
+                    "❌ Format salah\\. Sila guna format: `berat tinggi umur jantina`\n"
+                    "Contoh: `85 170 35 L`",
+                    parse_mode="MarkdownV2"
+                )
+                return
+        else:
+            await update.message.reply_text(
+                "❌ Format tak lengkap\\. Sila hantar *keempat\\-empat* info:\n"
+                "`berat tinggi umur jantina`\n\n"
+                "Contoh: `85 170 35 L`",
+                parse_mode="MarkdownV2"
+            )
+            return
+
+    text_upper = text.upper()
+
+    if text_upper == "YA" and "pending_undo" in context.user_data:
         meal_id = context.user_data.pop("pending_undo")
         success = delete_meal(meal_id)
         if success:
@@ -435,7 +608,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("❌ Gagal padam. Cuba lagi.")
         return
 
-    if text == "HANTAR" and is_admin(telegram_id) and "pending_broadcast" in context.user_data:
+    if text_upper == "HANTAR" and is_admin(telegram_id) and "pending_broadcast" in context.user_data:
         pending = context.user_data.pop("pending_broadcast")
         recipients = pending["recipients"]
         broadcast_message = pending["message"]
@@ -536,6 +709,8 @@ def main():
     app.add_handler(CommandHandler("air", cmd_air))
     app.add_handler(CommandHandler("log", cmd_log))
     app.add_handler(CommandHandler("mytags", cmd_mytags))
+    app.add_handler(CommandHandler("berat", cmd_berat))
+    app.add_handler(CommandHandler("setup", cmd_setup))
     app.add_handler(CommandHandler("broadcast", cmd_broadcast))
     app.add_handler(CommandHandler("tag", cmd_tag))
     app.add_handler(CommandHandler("removetag", cmd_removetag))
