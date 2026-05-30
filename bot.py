@@ -57,18 +57,18 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Check if onboarding needed
     if not db_user.get("onboarding_complete"):
         await update.message.reply_text(
-            f"👋 Salam *{user.first_name}*\\! Selamat datang ke Food Tracker Bot \\- pembantu nutrisi AI anda\\.\\n\\n"
-            "Sebelum mula, saya perlukan beberapa info untuk kira keperluan kalori anda secara automatik\\.\n\n"
+            f"👋 Salam *{user.first_name}*! Selamat datang ke Food Tracker Bot - pembantu nutrisi AI anda.\n\n"
+            "Sebelum mula, saya perlukan beberapa info untuk kira keperluan kalori anda secara automatik.\n\n"
             "📋 *Sila jawab soalan berikut:*\n\n"
-            "1\\. Berapa *berat* anda? \\(contoh: 85\\)\n"
-            "2\\. Berapa *tinggi* anda? \\(contoh: 170\\)\n"
-            "3\\. Berapa *umur* anda?\n"
-            "4\\. *Jantina* anda? \\(L/P\\)\n\n"
+            "1. Berapa *berat* anda? (contoh: 85)\n"
+            "2. Berapa *tinggi* anda? (contoh: 170)\n"
+            "3. Berapa *umur* anda?\n"
+            "4. *Jantina* anda? (L/P)\n\n"
             "Hantar dalam format:\n"
             "`berat tinggi umur jantina`\n\n"
             "Contoh: `85 170 35 L`\n\n"
-            "Saya akan kira TDEE dan target kalori untuk *weight loss* anda\\. 🔥",
-            parse_mode="MarkdownV2"
+            "Saya akan kira TDEE dan target kalori untuk *weight loss* anda. 🔥",
+            parse_mode="Markdown"
         )
         return
 
@@ -583,9 +583,9 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 return
             except (ValueError, IndexError):
                 await update.message.reply_text(
-                    "❌ Format salah\\. Sila guna format: `berat tinggi umur jantina`\n"
+                    "❌ Format salah. Sila guna format: `berat tinggi umur jantina`\n"
                     "Contoh: `85 170 35 L`",
-                    parse_mode="MarkdownV2"
+                    parse_mode="Markdown"
                 )
                 return
             except Exception as e:
@@ -594,15 +594,15 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     "❌ Ralat teknikal. Cuba hantar semula info anda:\n"
                     "`berat tinggi umur jantina`\n"
                     "Contoh: `85 170 35 L`",
-                    parse_mode="MarkdownV2"
+                    parse_mode="Markdown"
                 )
                 return
         else:
             await update.message.reply_text(
-                "❌ Format tak lengkap\\. Sila hantar *keempat\\-empat* info:\n"
+                "❌ Format tak lengkap. Sila hantar *keempat-empat* info:\n"
                 "`berat tinggi umur jantina`\n\n"
                 "Contoh: `85 170 35 L`",
-                parse_mode="MarkdownV2"
+                parse_mode="Markdown"
             )
             return
 
