@@ -729,10 +729,11 @@ def main():
 
     # Error handler — CRITICAL for debugging
     async def error_handler(update, context):
-        logger.error(f"Bot error: {context.error}", exc_info=context.error)
+        err = str(context.error)[:200]
+        logger.error(f"Bot error: {err}", exc_info=context.error)
         if update and update.effective_message:
             try:
-                await update.effective_message.reply_text("❌ Ralat teknikal. Cuba lagi nanti.")
+                await update.effective_message.reply_text(f"❌ Ralat: {err}")
             except:
                 pass
     app.add_error_handler(error_handler)
