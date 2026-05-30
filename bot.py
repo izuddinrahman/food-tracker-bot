@@ -590,10 +590,15 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 return
             except Exception as e:
                 logger.error(f"Error in onboarding handler: {e}", exc_info=True)
+                # Include actual error for debugging
+                import traceback
+                tb = traceback.format_exc()[-300:]
                 await update.message.reply_text(
-                    "❌ Ralat teknikal. Cuba hantar semula info anda:\n"
+                    f"❌ Ralat teknikal: {str(e)[:150]}\n\n"
+                    "Cuba hantar semula info anda:\n"
                     "`berat tinggi umur jantina`\n"
-                    "Contoh: `85 170 35 L`",
+                    "Contoh: `85 170 35 L`\n\n"
+                    f"```{tb[-200:]}```",
                     parse_mode="Markdown"
                 )
                 return
