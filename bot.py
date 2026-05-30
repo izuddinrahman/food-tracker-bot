@@ -573,8 +573,8 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     f"🎂 Umur: *{age} tahun*\\n"
                     f"⚧️ Jantina: *{gender.upper()}*\\n\\n"
                     f"📊 *Keputusan:*\\n"
-                    f"🔥 TDEE \\(kalori dibakar sehari\\): *{tdee} kcal*\\n"
-                    f"🎯 Target Kalori \\(untuk turun berat\\): *{cal} kcal/hari*\\n"
+                    f"🔥 TDEE \\(kalori dibakar sehari\\): *{int(tdee)} kcal*\n"
+                    f"🎯 Target Kalori \\(untuk turun berat\\): *{int(cal)} kcal/hari*\n"
                     f"💪 Target Protein: *{int(protein)}g/hari*\\n\\n"
                     f"📸 Sekarang hantar gambar makanan pertama anda\\! 🍛\\n"
                     f"Taip /help untuk senarai commands\\.",
