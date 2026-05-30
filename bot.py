@@ -567,18 +567,18 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 cal = result["cal_target"]
                 protein = result["protein_target"]
                 await update.message.reply_text(
-                    f"✅ *Profil Disimpan\\!*\\n\\n"
-                    f"⚖️ Berat: *{int(weight)}kg*\\n"
-                    f"📏 Tinggi: *{int(height)}cm*\\n"
-                    f"🎂 Umur: *{age} tahun*\\n"
-                    f"⚧️ Jantina: *{gender.upper()}*\\n\\n"
-                    f"📊 *Keputusan:*\\n"
-                    f"🔥 TDEE \\(kalori dibakar sehari\\): *{int(tdee)} kcal*\n"
-                    f"🎯 Target Kalori \\(untuk turun berat\\): *{int(cal)} kcal/hari*\n"
-                    f"💪 Target Protein: *{int(protein)}g/hari*\\n\\n"
-                    f"📸 Sekarang hantar gambar makanan pertama anda\\! 🍛\\n"
-                    f"Taip /help untuk senarai commands\\.",
-                    parse_mode="MarkdownV2"
+                    f"✅ *Profil Disimpan!*\n\n"
+                    f"⚖️ Berat: *{int(weight)}kg*\n"
+                    f"📏 Tinggi: *{int(height)}cm*\n"
+                    f"🎂 Umur: *{age} tahun*\n"
+                    f"⚧️ Jantina: *{gender.upper()}*\n\n"
+                    f"📊 *Keputusan:*\n"
+                    f"🔥 TDEE (kalori dibakar sehari): *{int(tdee)} kcal*\n"
+                    f"🎯 Target Kalori (untuk turun berat): *{int(cal)} kcal/hari*\n"
+                    f"💪 Target Protein: *{int(protein)}g/hari*\n\n"
+                    f"📸 Sekarang hantar gambar makanan pertama anda! 🍛\n"
+                    f"Taip /help untuk senarai commands.",
+                    parse_mode="Markdown"
                 )
                 return
             except (ValueError, IndexError):
@@ -726,6 +726,16 @@ def main():
     app.add_handler(CommandHandler("users", cmd_users))
     app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
+
+    # Error handler — CRITICAL for debugging
+    async def error_handler(update, context):
+        logger.error(f"Bot error: {context.error}", exc_info=context.error)
+        if update and update.effective_message:
+            try:
+                await update.effective_message.reply_text("❌ Ralat teknikal. Cuba lagi nanti.")
+            except:
+                pass
+    app.add_error_handler(error_handler)
 
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 
