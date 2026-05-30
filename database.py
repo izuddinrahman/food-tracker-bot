@@ -45,8 +45,8 @@ def update_user_profile(telegram_id: int, weight_kg: float, height_cm: float,
     tdee = calculate_tdee(weight_kg, height_cm, age, gender)
     # Weight loss target: TDEE - 500 cal (~0.5kg/week)
     cal_target = max(1200, tdee - 500)
-    # Protein: 1.6g per kg body weight
-    protein_target = round(weight_kg * 1.6, 1)
+    # Protein: 1.6g per kg body weight (rounded to int for DB)
+    protein_target = int(round(weight_kg * 1.6))
 
     supabase.table("food_users") \
         .update({
