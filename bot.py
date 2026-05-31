@@ -33,6 +33,9 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO
 )
+
+# Personal mode — restrict to single user
+ALLOWED_USER_ID = int(os.getenv("ALLOWED_USER_ID", "0"))
 logger = logging.getLogger(__name__)
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
@@ -51,6 +54,8 @@ def is_admin(telegram_id: int) -> bool:
 # ─── COMMANDS ────────────────────────────────────────────────────────────────
 
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if ALLOWED_USER_ID and update.effective_user.id != ALLOWED_USER_ID:
+        return
     user = update.effective_user
     db_user = get_or_create_user(user.id, user.first_name)
 
@@ -103,6 +108,8 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if ALLOWED_USER_ID and update.effective_user.id != ALLOWED_USER_ID:
+        return
     admin_section = ""
     if is_admin(update.effective_user.id):
         admin_section = (
@@ -135,6 +142,8 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def cmd_today(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if ALLOWED_USER_ID and update.effective_user.id != ALLOWED_USER_ID:
+        return
     telegram_id = update.effective_user.id
     get_or_create_user(telegram_id, update.effective_user.first_name)
     await update.message.reply_text("⏳ Menyediakan ringkasan...")
@@ -143,6 +152,8 @@ async def cmd_today(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def cmd_week(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if ALLOWED_USER_ID and update.effective_user.id != ALLOWED_USER_ID:
+        return
     telegram_id = update.effective_user.id
     get_or_create_user(telegram_id, update.effective_user.first_name)
     await update.message.reply_text("⏳ Menyediakan ringkasan mingguan...")
@@ -151,6 +162,8 @@ async def cmd_week(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def cmd_target(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if ALLOWED_USER_ID and update.effective_user.id != ALLOWED_USER_ID:
+        return
     telegram_id = update.effective_user.id
     args = context.args
     if len(args) < 1:
@@ -180,6 +193,8 @@ async def cmd_target(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def cmd_undo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if ALLOWED_USER_ID and update.effective_user.id != ALLOWED_USER_ID:
+        return
     telegram_id = update.effective_user.id
     last_meal = get_last_meal(telegram_id)
     if not last_meal:
@@ -199,6 +214,8 @@ async def cmd_undo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def cmd_air(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if ALLOWED_USER_ID and update.effective_user.id != ALLOWED_USER_ID:
+        return
     telegram_id = update.effective_user.id
     args = context.args
     if not args:
@@ -241,6 +258,8 @@ async def cmd_air(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def cmd_log(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if ALLOWED_USER_ID and update.effective_user.id != ALLOWED_USER_ID:
+        return
     telegram_id = update.effective_user.id
     get_or_create_user(telegram_id, update.effective_user.first_name)
     args = context.args
@@ -286,6 +305,8 @@ async def cmd_log(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def cmd_mytags(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if ALLOWED_USER_ID and update.effective_user.id != ALLOWED_USER_ID:
+        return
     telegram_id = update.effective_user.id
     user = get_user(telegram_id)
     if not user:
@@ -301,6 +322,8 @@ async def cmd_mytags(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def cmd_setup(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if ALLOWED_USER_ID and update.effective_user.id != ALLOWED_USER_ID:
+        return
     """Revise profile — reset onboarding and re-calculate TDEE."""
     telegram_id = update.effective_user.id
     user = get_user(telegram_id)
@@ -333,6 +356,8 @@ async def cmd_setup(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def cmd_berat(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if ALLOWED_USER_ID and update.effective_user.id != ALLOWED_USER_ID:
+        return
     """Log berat badan dan lihat progress."""
     telegram_id = update.effective_user.id
     user = get_user(telegram_id)
@@ -392,6 +417,8 @@ async def cmd_berat(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def cmd_tag(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if ALLOWED_USER_ID and update.effective_user.id != ALLOWED_USER_ID:
+        return
     if not is_admin(update.effective_user.id):
         await update.message.reply_text("❌ Admin sahaja boleh guna command ini.")
         return
@@ -415,6 +442,8 @@ async def cmd_tag(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def cmd_removetag(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if ALLOWED_USER_ID and update.effective_user.id != ALLOWED_USER_ID:
+        return
     if not is_admin(update.effective_user.id):
         await update.message.reply_text("❌ Admin sahaja boleh guna command ini.")
         return
@@ -432,6 +461,8 @@ async def cmd_removetag(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def cmd_users(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if ALLOWED_USER_ID and update.effective_user.id != ALLOWED_USER_ID:
+        return
     if not is_admin(update.effective_user.id):
         await update.message.reply_text("❌ Admin sahaja.")
         return
@@ -449,6 +480,8 @@ async def cmd_users(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def cmd_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if ALLOWED_USER_ID and update.effective_user.id != ALLOWED_USER_ID:
+        return
     if not is_admin(update.effective_user.id):
         await update.message.reply_text("❌ Admin sahaja boleh broadcast.")
         return
@@ -497,6 +530,8 @@ async def cmd_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ─── PHOTO HANDLER ───────────────────────────────────────────────────────────
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if ALLOWED_USER_ID and update.effective_user.id != ALLOWED_USER_ID:
+        return
     telegram_id = update.effective_user.id
     get_or_create_user(telegram_id, update.effective_user.first_name)
     caption = update.message.caption or ""
@@ -549,6 +584,8 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ─── TEXT HANDLER ────────────────────────────────────────────────────────────
 
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if ALLOWED_USER_ID and update.effective_user.id != ALLOWED_USER_ID:
+        return
     telegram_id = update.effective_user.id
     text = update.message.text.strip()
 
